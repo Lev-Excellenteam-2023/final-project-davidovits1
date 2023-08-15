@@ -1,4 +1,5 @@
 import os
+import httpx
 import openai
 from dotenv import load_dotenv
 
@@ -8,7 +9,8 @@ API_KEY = os.getenv("API_KEY")
 openai.api_key = API_KEY
 
 
-async def generate_explanation_async(session, prompt, max_tokens=100, timeout=30):
+async def generate_explanation_async(session: httpx.AsyncClient, prompt: str, max_tokens: int = 100,
+                                     timeout: int = 30) -> str:
     """
     Generate an explanation asynchronously for a given prompt using the OpenAI API.
 

@@ -1,5 +1,4 @@
 import httpx
-
 import presentation_parser
 import openAI_request
 import json
@@ -10,7 +9,7 @@ import asyncio
 PATH = "End of course exercise.pptx"
 
 
-async def process_slide(index, text_pptx, session):
+async def process_slide(index: int, text_pptx: list, session: httpx.AsyncClient) -> dict:
     """
     Process a slide asynchronously to generate its explanation.
 
@@ -31,29 +30,6 @@ async def process_slide(index, text_pptx, session):
         "explanation_from_chat": explanation,
     }
 
-# def make_slides_for_json(data_dict: dict, text_pptx: list) -> list:
-#     """
-#     Preparing slides for a json file
-#     :param data_dict: a dictionary where the key is the number of the presentation
-#      and the value is the explanation of the chat
-#     :param text_pptx: a list that holds the content of the presentations
-#     :return: slides for json file
-#     """
-#     slides = []
-#     for key in data_dict:
-#         explanation_from_chat = data_dict[key]
-#         slide_from_pptx = text_pptx[key - 1]
-#
-#         slide = {
-#             "slide_num": key,
-#             "slide_from_pptx": slide_from_pptx,
-#             "explanation_from_chat": explanation_from_chat,
-#         }
-#
-#         slides.append(slide)
-#
-#     return slides
-
 
 async def main():
     # Optionally put a presentation in argv
@@ -72,19 +48,12 @@ async def main():
         tasks = [process_slide(i, text_pptx, client) for i in range(len(text_pptx))]
         slides = await asyncio.gather(*tasks)
 
-    # data_dict = {}
-    # for i in range(len(text_pptx)):
-    #     data_dict[i + 1] = openAI_request.generate_explanation(text_pptx[i])
-    #
-    # slides = make_slides_for_json(data_dict, text_pptx)
-
     path = path.replace(".pptx", ".json")
     try:
         with open(path, 'w') as json_file:
             json.dump(slides, json_file, indent=4)
     except Exception as e:
         print(f"An error occurred: {e}")
-    # print(data_dict)
 
 
 if __name__ == "__main__":
