@@ -1,6 +1,5 @@
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx import Presentation
-from typing import List
 
 
 def extract_text_from_shape(shape) -> str:
@@ -45,7 +44,7 @@ def extract_text_from_slide(slide) -> str:
     return slide_text.strip()
 
 
-def extract_text(path_to_presentation: str) -> List[str]:
+def extract_text(path_to_presentation: str) -> list:
     """
     Extracts the text from each shape in each slide of a PowerPoint presentation.
 
