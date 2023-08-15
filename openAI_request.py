@@ -8,31 +8,31 @@ API_KEY = os.getenv("API_KEY")
 openai.api_key = API_KEY
 
 
-def generate_explanation(prompt: str, engine="gpt-3.5-turbo", max_tokens=100) -> str:
+async def generate_explanation_async(session, prompt, max_tokens=100, timeout=30):
     """
-    Generate an explanation for a given prompt using the OpenAI API.
+    Generate an explanation asynchronously for a given prompt using the OpenAI API.
 
     Args:
+        session: The HTTP session for asynchronous requests.
         prompt (str): The prompt for which to generate an explanation.
-        engine (str): The OpenAI engine to use.
-        max_tokens (int): The maximum number of tokens in the response.
+        max_tokens (int, optional): The maximum number of tokens in the response.
+        timeout (int, optional): Timeout duration in seconds.
 
     Returns:
         str: The generated explanation text.
     """
-    # full_prompt = "\"Explain the significance of \'" + prompt + "\' slide.\""
-
-    try:
-        response = openai.ChatCompletion.create(
-            model=engine,
-            messages=[
+    response = await session.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={"Authorization": f"Bearer {API_KEY}"},
+        json={
+            "messages": [
                 {"role": "system", "content": "You are a helpful assistant that explains slide significance."},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=max_tokens,
-        )
-        return response.choices[0].message["content"].strip()
-    except openai.error.OpenAIError as e:
-        return f"An error occurred: {e}"
-
-
+            "model": "gpt-3.5-turbo",
+            "max_tokens": max_tokens,
+        },
+        timeout=timeout,
+    )
+    response_data = response.json()
+    return response_data["choices"][0]["message"]["content"].strip()
