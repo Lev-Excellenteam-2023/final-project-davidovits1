@@ -1,12 +1,14 @@
+import os
+
 import presentation_parser
 import sys
 import asyncio
 import async_client
-import create_json_file
+import create_json
 
 
 PATH = "End of course exercise.pptx"
-OUTPUTS_PART_1 = "outputs_part_1/"
+OUTPUTS_PART_1 = "outputs_part_1"
 
 
 async def main():
@@ -23,8 +25,7 @@ async def main():
     print(text_pptx)
 
     slides = await async_client.async_client(text_pptx)
-    name_of_path = OUTPUTS_PART_1 + path.replace(".pptx", ".json")
-    create_json_file.create_json_file(name_of_path, slides)
+    create_json.create_json_file(path, OUTPUTS_PART_1, slides)
 
 if __name__ == "__main__":
     asyncio.run(main())
