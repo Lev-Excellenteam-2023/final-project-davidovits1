@@ -4,3 +4,4 @@ venv/
 __pycache__/
 *.json
 *.pptx
+outputs_part_1/
