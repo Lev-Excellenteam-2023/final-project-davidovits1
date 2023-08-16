@@ -31,6 +31,21 @@ async def process_slide(index: int, text_pptx: list, session: httpx.AsyncClient)
     }
 
 
+def create_json_file(name_of_file: str, data: any) -> None:
+    """
+    Create json file
+
+    :param name_of_file: The name of the file to be created
+    :param data: Data for a json file
+    :return:
+    """
+    try:
+        with open(name_of_file, 'w') as json_file:
+            json.dump(data, json_file, indent=4)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
 async def main():
     # Optionally put a presentation in argv
     if len(sys.argv) > 1:
@@ -48,13 +63,8 @@ async def main():
         tasks = [process_slide(i, text_pptx, client) for i in range(len(text_pptx))]
         slides = await asyncio.gather(*tasks)
 
-    path = path.replace(".pptx", ".json")
-    try:
-        with open(path, 'w') as json_file:
-            json.dump(slides, json_file, indent=4)
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
+    name_of_file = path.replace(".pptx", ".json")
+    create_json_file(name_of_file, slides)
 
 if __name__ == "__main__":
     asyncio.run(main())
