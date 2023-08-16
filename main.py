@@ -1,27 +1,12 @@
-import httpx
 import presentation_parser
-import process_slide
-import json
 import sys
 import asyncio
+import async_client
+import create_json_file
 
 
 PATH = "End of course exercise.pptx"
-
-
-def create_json_file(name_of_file: str, data: any) -> None:
-    """
-    Create json file
-
-    :param name_of_file: The name of the file to be created
-    :param data: Data for a json file
-    :return:
-    """
-    try:
-        with open(name_of_file, 'w') as json_file:
-            json.dump(data, json_file, indent=4)
-    except Exception as e:
-        print(f"An error occurred: {e}")
+OUTPUTS_PART_1 = "outputs_part_1/"
 
 
 async def main():
@@ -37,12 +22,9 @@ async def main():
         return
     print(text_pptx)
 
-    async with httpx.AsyncClient() as client:
-        tasks = [process_slide.process_slide(i, text_pptx, client) for i in range(len(text_pptx))]
-        slides = await asyncio.gather(*tasks)
-
-    name_of_file = path.replace(".pptx", ".json")
-    create_json_file(name_of_file, slides)
+    slides = await async_client.async_client(text_pptx)
+    name_of_path = OUTPUTS_PART_1 + path.replace(".pptx", ".json")
+    create_json_file.create_json_file(name_of_path, slides)
 
 if __name__ == "__main__":
     asyncio.run(main())
