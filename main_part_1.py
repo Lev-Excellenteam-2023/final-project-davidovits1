@@ -1,5 +1,3 @@
-import os
-
 import presentation_parser
 import sys
 import asyncio
