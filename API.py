@@ -1,15 +1,17 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 import os
 import uuid
+import json_file
 
 
 app = Flask(__name__)
 
 UPLOAD_FOLDER = 'uploads'
+OUTPUT_FOLDER = 'outputs'
 ALLOWED_EXTENSIONS = {'pptx'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
+app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -38,6 +40,25 @@ def upload_file():
         return f"File uploaded successfully. UID: {uid}"
 
     return "Invalid file format", 400
+
+
+@app.route('/status/<uid>', methods=['GET'])
+def check_status(uid):
+    # Check if the UID exists in uploads or outputs folder
+    upload_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{uid}.pptx")
+    output_path = os.path.join(app.config['OUTPUT_FOLDER'], f"{uid}.json")
+
+    if os.path.exists(output_path):
+        # If output JSON exists, return its contents
+        output_data = json_file.read_from_json(output_path)
+        response = json_file.sort_json_to_send(output_data)
+        return response
+    elif os.path.exists(upload_path):
+        # If UID exists in uploads but not yet processed, return processing status
+        return jsonify({"status": "processing"})
+    else:
+        # If UID doesn't exist, return appropriate response
+        return jsonify({"status": "not_found"})
 
 
 if __name__ == '__main__':
