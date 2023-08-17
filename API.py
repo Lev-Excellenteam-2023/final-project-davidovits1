@@ -2,6 +2,7 @@ from flask import Flask, request, render_template, jsonify
 import os
 import uuid
 import json_file
+from datetime import datetime
 
 
 app = Flask(__name__)
@@ -12,6 +13,7 @@ ALLOWED_EXTENSIONS = {'pptx'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -34,11 +36,13 @@ def upload_file():
 
     if file and allowed_file(file.filename):
         uid = str(uuid.uuid4())
-        filename = uid + '.pptx'
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        return f"File uploaded successfully. UID: {uid}"
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        original_filename = os.path.splitext(file.filename)[0]
+        new_filename = f"{original_filename}_{timestamp}_{uid}.pptx"
 
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], new_filename))
+        return f"File uploaded successfully. New filename: {file.filename}, UID: {uid}"
     return "Invalid file format", 400
 
 
