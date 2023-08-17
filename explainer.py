@@ -1,7 +1,7 @@
 import os
 import asyncio
 import async_client
-import create_json
+import json_file
 import presentation_parser
 
 UPLOAD_FOLDER = 'uploads'
@@ -26,7 +26,7 @@ async def process_files():
                 slides = await async_client.async_client(list_presentation)
 
                 # Save the output JSON
-                create_json.create_json_file(file_path, OUTPUT_FOLDER, slides)
+                json_file.create_json_file(file_path, OUTPUT_FOLDER, slides)
 
                 # Remove the processed file from uploads
                 os.remove(file_path)

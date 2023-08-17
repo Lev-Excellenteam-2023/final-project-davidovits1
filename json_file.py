@@ -1,5 +1,6 @@
 import json
 import os
+from flask import Response
 
 
 def create_json_file(path: str, output_folder: str,  data: any) -> None:
@@ -32,3 +33,17 @@ def crate_path_to_json(path: str, output_folder: str) -> str:
     output_path = os.path.join(output_folder, filename_json)
 
     return output_path
+
+
+def read_from_json(output_path: str) -> list:
+    with open(output_path, 'r') as json_file:
+        output_data = json.load(json_file)
+    return output_data
+
+
+def sort_json_to_send(output_data: list) -> Response:
+    response = Response(
+        json.dumps(output_data, indent=4, sort_keys=False),
+        content_type='application/json'
+    )
+    return response
