@@ -9,6 +9,10 @@ OUTPUT_FOLDER = 'outputs'
 
 
 async def process_files():
+    """
+    Searches for new pptx files in the uploads folder
+     and sends them to async_client and then saves the json in the outputs folder
+    """
     while True:
         for filename in os.listdir(UPLOAD_FOLDER):
             if filename.endswith('.pptx'):
