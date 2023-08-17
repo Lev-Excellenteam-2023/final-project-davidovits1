@@ -33,7 +33,7 @@ async def process_files():
                 print(file_path + " removed")
 
         # Wait for some time before checking again
-        await asyncio.sleep(5)
+        await asyncio.sleep(10)
 
 
 if __name__ == '__main__':

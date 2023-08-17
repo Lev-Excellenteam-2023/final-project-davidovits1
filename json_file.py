@@ -56,7 +56,7 @@ def read_from_json(output_path: str) -> list:
 def sort_json_to_send(output_data: list) -> Response:
     """
     This function takes a list of data, sorts it, and creates a Flask Response object containing the sorted JSON data.
-    
+
     Parameters:
 
     output_data (list): The list of data to be sent as JSON response.
