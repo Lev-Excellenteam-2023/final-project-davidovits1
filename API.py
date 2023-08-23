@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template
 import os
 import uuid
 import json_file
@@ -48,21 +48,25 @@ def upload_file():
 
 @app.route('/status/<uid>', methods=['GET'])
 def check_status(uid):
-    # Check if the UID exists in uploads or outputs folder
-    upload_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{uid}.pptx")
-    output_path = os.path.join(app.config['OUTPUT_FOLDER'], f"{uid}.json")
+    upload_files = [filename for filename in os.listdir(app.config['UPLOAD_FOLDER'])
+                    if filename.endswith(f"_{uid}.pptx")]
+    output_files = [filename for filename in os.listdir(app.config['OUTPUT_FOLDER'])
+                    if filename.endswith(f"_{uid}.json")]
 
-    if os.path.exists(output_path):
+    if any(output_files):
         # If output JSON exists, return its contents
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_files[0])
         output_data = json_file.read_from_json(output_path)
         response = json_file.sort_json_to_send(output_data)
         return response
-    elif os.path.exists(upload_path):
+    elif any(upload_files):
         # If UID exists in uploads but not yet processed, return processing status
-        return jsonify({"status": "processing"})
+        # return jsonify({"status": "processing"})
+        return "status: processing", 200
     else:
         # If UID doesn't exist, return appropriate response
-        return jsonify({"status": "not_found"})
+        # return jsonify({"status": "not_found"})
+        return "status: not_found", 404
 
 
 if __name__ == '__main__':
