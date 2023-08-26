@@ -1,40 +1,44 @@
 import os
 import asyncio
+from datetime import datetime
+
 import async_client
 import json_file
 import presentation_parser
+from API import db, Upload
 
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'outputs'
 
 
-async def process_files():
+async def process_uploads():
     """
-    Searches for new pptx files in the uploads folder
-     and sends them to async_client and then saves the json in the outputs folder
+    Processes pending uploads from the database.
     """
     while True:
-        for filename in os.listdir(UPLOAD_FOLDER):
-            if filename.endswith('.pptx'):
-                file_path = os.path.join(UPLOAD_FOLDER, filename)
-                list_presentation = presentation_parser.extract_text(file_path)
-                if list_presentation == [""]:
-                    # Error loading the presentation
-                    os.remove(file_path)
-                    break
+        pending_uploads = Upload.query.filter_by(status='pending').all()
 
+        for upload in pending_uploads:
+            file_path = os.path.join(UPLOAD_FOLDER, upload.filename)
+            list_presentation = presentation_parser.extract_text(file_path)
+
+            # Process the presentation and update status in the database
+            try:
                 slides = await async_client.async_client(list_presentation)
+                upload.status = 'processed'
+                upload.finish_time = datetime.now()
+            except Exception as e:
+                upload.status = 'error'
+                upload.finish_time = datetime.now()
 
-                # Save the output JSON
-                json_file.create_json_file(file_path, OUTPUT_FOLDER, slides)
+            # Save the JSON output and update Outputs table
+            json_file.create_json_file(upload.uid, OUTPUT_FOLDER, slides)
+            db.session.add(uid=upload.uid, filename=f"{upload.uid}.json")
 
-                # Remove the processed file from uploads
-                os.remove(file_path)
-                print(file_path + " removed")
+            db.session.commit()
 
-        # Wait for some time before checking again
         await asyncio.sleep(10)
 
 
 if __name__ == '__main__':
-    asyncio.run(process_files())
+    asyncio.run(process_uploads())
