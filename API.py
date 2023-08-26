@@ -32,7 +32,7 @@ class User(db.Model):
 class Upload(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     uid = db.Column(db.String(36), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Add this line
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', back_populates='uploads')
 
