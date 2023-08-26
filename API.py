@@ -1,7 +1,9 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 import os
 import uuid
 import json_file
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import load_only
 from datetime import datetime
 
 
@@ -13,6 +15,23 @@ ALLOWED_EXTENSIONS = {'pptx'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///uploads.db'  # Using SQLite for simplicity
+db = SQLAlchemy(app)
+
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=True)
+    uploads = db.relationship('Upload', back_populates='user')
+
+
+class Upload(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    uid = db.Column(db.String(36), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Add this line
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship('User', back_populates='uploads')
 
 
 def allowed_file(filename):
@@ -26,6 +45,8 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    email = request.form.get('email')  # Get email from POST parameter
+
     if 'file' not in request.files:
         return "No file part", 400
 
@@ -36,37 +57,51 @@ def upload_file():
 
     if file and allowed_file(file.filename):
         uid = str(uuid.uuid4())
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        original_filename = os.path.splitext(file.filename)[0]
-        new_filename = f"{original_filename}_{timestamp}_{uid}.pptx"
 
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], new_filename))
-        return f"File uploaded successfully. New filename: {file.filename}, UID: {uid}"
+        # Save the upload to the database
+        upload = Upload(uid=uid)  # Create an Upload object with uid
+        if email:
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                user = User(email=email)
+            upload.user = user
+
+        db.session.add(upload)  # Add the upload object to the session
+        db.session.commit()  # Commit the changes to the database
+
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], f"{uid}.pptx"))
+        return f"File uploaded successfully. UID: {uid}"
     return "Invalid file format", 400
 
 
-@app.route('/status/<uid>', methods=['GET'])
-def check_status(uid):
-    upload_files = [filename for filename in os.listdir(app.config['UPLOAD_FOLDER'])
-                    if filename.endswith(f"_{uid}.pptx")]
-    output_files = [filename for filename in os.listdir(app.config['OUTPUT_FOLDER'])
-                    if filename.endswith(f"_{uid}.json")]
+@app.route('/status', methods=['GET'])
+def get_upload_status():
+    uid = request.args.get('uid')
+    filename = request.args.get('filename')
+    email = request.args.get('email')
 
-    if any(output_files):
-        # If output JSON exists, return its contents
-        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_files[0])
-        output_data = json_file.read_from_json(output_path)
-        response = json_file.sort_json_to_send(output_data)
-        return response
-    elif any(upload_files):
-        # If UID exists in uploads but not yet processed, return processing status
-        # return jsonify({"status": "processing"})
-        return "status: processing", 200
+    if uid:
+        upload = Upload.query.filter_by(uid=uid).first()
+    elif filename and email:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            upload = Upload.query.filter_by(uid=filename, user_id=user.id).order_by(
+                Upload.created_at.desc()).first()
+        else:
+            return jsonify({'error': 'User not found'}), 404
     else:
-        # If UID doesn't exist, return appropriate response
-        # return jsonify({"status": "not_found"})
-        return "status: not_found", 404
+        return jsonify({'error': 'Invalid parameters'}), 400
+
+    if upload:
+        response = {
+            'uid': upload.uid,
+            'status': upload.status,  # You can fetch status from your upload object
+            'finished_at': upload.finished_at,  # Similarly, fetch other data from the object
+            # Add more data as needed
+        }
+        return jsonify(response)
+    else:
+        return jsonify({'error': 'Upload not found'}), 404
 
 
 if __name__ == '__main__':
