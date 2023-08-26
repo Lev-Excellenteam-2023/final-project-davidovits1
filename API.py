@@ -1,10 +1,11 @@
 from flask import Flask, request, render_template, jsonify
 import os
 import uuid
-import json_file
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import load_only
 from datetime import datetime
+from flask_migrate import Migrate
+
 
 
 app = Flask(__name__)
@@ -18,6 +19,8 @@ app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///uploads.db'  # Using SQLite for simplicity
 db = SQLAlchemy(app)
+
+migrate = Migrate(app, db)
 
 
 class User(db.Model):
