@@ -17,7 +17,7 @@ ALLOWED_EXTENSIONS = {'pptx'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///uploads.db'  # Using SQLite for simplicity
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///uploads.db'
 db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
@@ -98,9 +98,8 @@ def get_upload_status():
     if upload:
         response = {
             'uid': upload.uid,
-            'status': upload.status,  # You can fetch status from your upload object
-            'finished_at': upload.finished_at,  # Similarly, fetch other data from the object
-            # Add more data as needed
+            'status': upload.status,
+            'finished_at': upload.finished_at,
         }
         return jsonify(response)
     else:
