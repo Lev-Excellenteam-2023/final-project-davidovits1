@@ -1,7 +1,10 @@
-from flask import Flask, request, render_template, jsonify, flash, redirect
+import os
+
+from flask import Flask, request, render_template, flash, redirect
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker, declarative_base
 import db_model
+import json_file
 
 app = Flask(__name__)
 
@@ -20,8 +23,8 @@ Session = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base()
 
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# def allowed_file(filename):
+#     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route('/')
@@ -48,33 +51,21 @@ def upload_file():
     return "Invalid file format", 400
 
 
-@app.route('/status/<uid>/<filename>/<email>', methods=['GET'])
-def get_upload_status(uid, filename, email):
-    #uid = request.args.get('uid')
-    # filename = request.args.get('filename')
-    # email = request.args.get('email')
-
-    if uid:
-        upload = Upload.query.filter_by(uid=uid).first()
-    elif filename and email:
-        user = User.query.filter_by(email=email).first()
-        if user:
-            upload = Upload.query.filter_by(uid=filename, user_id=user.id).order_by(
-                Upload.created_at.desc()).first()
-        else:
-            return jsonify({'error': 'User not found'}), 404
-    else:
-        return jsonify({'error': 'Invalid parameters'}), 400
-
-    if upload:
-        response = {
-            'uid': upload.uid,
-            'status': upload.status,
-            'finished_at': upload.finished_at,
-        }
-        return jsonify(response)
-    else:
-        return jsonify({'error': 'Upload not found'}), 404
+@app.route('/status/<uid>', methods=['GET'])
+def get_upload_status(uid):
+    with Session() as session:
+        file_data = session.query(db_model.Upload).filter_by(uid=uid).first()
+        if file_data:
+            if file_data.status == db_model.UploadStatus.done:
+                output_path = os.path.join(OUTPUT_FOLDER, f"{uid}.json")
+                data = json_file.read_from_json(output_path)
+                output_data = json_file.save_to_json(uid, file_data.status, file_data.filename,
+                                                     file_data.finish_time, data)
+            else:
+                output_data = json_file.save_to_json(uid, file_data.status, file_data.filename, file_data.finish_time)
+            response = json_file.sort_json_to_send(output_data)
+            return response
+    return "status: not_found", 404
 
 
 if __name__ == '__main__':

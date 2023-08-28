@@ -1,6 +1,9 @@
 import json
 import os
+from datetime import datetime
+
 from flask import Response
+
 
 
 def create_json_file(path: str, output_folder: str,  data: any) -> None:
@@ -69,3 +72,13 @@ def sort_json_to_send(output_data: list) -> Response:
         content_type='application/json'
     )
     return response
+
+
+def save_to_json(uid: str, upload_status: str, name: str, finish_time: datetime = None, explanation=None):
+    return {
+        'uid': uid,
+        'status': upload_status,
+        'filename': name,
+        'finish time': str(finish_time),
+        'explanation': explanation
+    }
