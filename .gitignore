@@ -6,3 +6,5 @@ __pycache__/
 *.pptx
 outputs_part_1/
 example presentations/
+db/
+instance/
