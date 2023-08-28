@@ -1,12 +1,7 @@
-from flask import Flask, request, render_template, jsonify
-import os
-import uuid
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import load_only
-from datetime import datetime
-from flask_migrate import Migrate
-
-
+from flask import Flask, request, render_template, jsonify, flash, redirect
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker, declarative_base
+import db_model
 
 app = Flask(__name__)
 
@@ -14,27 +9,15 @@ UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'outputs'
 ALLOWED_EXTENSIONS = {'pptx'}
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///uploads.db'
-db = SQLAlchemy(app)
+# Create the engine
+engine = create_engine('sqlite:///db/db.sqlite3')
 
-migrate = Migrate(app, db)
+# Create a scoped session to manage sessions for each request
+Session = scoped_session(sessionmaker(bind=engine))
 
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=True)
-    uploads = db.relationship('Upload', back_populates='user')
-
-
-class Upload(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    uid = db.Column(db.String(36), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    user = db.relationship('User', back_populates='uploads')
+# Base class for the models
+Base = declarative_base()
 
 
 def allowed_file(filename):
@@ -48,40 +31,28 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    email = request.form.get('email')  # Get email from POST parameter
-
-    if 'file' not in request.files:
-        return "No file part", 400
-
-    file = request.files['file']
-
-    if file.filename == '':
-        return "No selected file", 400
-
-    if file and allowed_file(file.filename):
-        uid = str(uuid.uuid4())
-
-        # Save the upload to the database
-        upload = Upload(uid=uid)  # Create an Upload object with uid
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files.get('file')
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        email = request.form.get('email')
         if email:
-            user = User.query.filter_by(email=email).first()
-            if not user:
-                user = User(email=email)
-            upload.user = user
-
-        db.session.add(upload)  # Add the upload object to the session
-        db.session.commit()  # Commit the changes to the database
-
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], f"{uid}.pptx"))
-        return f"File uploaded successfully. UID: {uid}"
+            uid = db_model.save_upload_with_user(file, email)
+        else:
+            uid = db_model.save_upload(file)
+        return f"File uploaded successfully. UID: {uid}", 200
     return "Invalid file format", 400
 
 
-@app.route('/status', methods=['GET'])
-def get_upload_status():
-    uid = request.args.get('uid')
-    filename = request.args.get('filename')
-    email = request.args.get('email')
+@app.route('/status/<uid>/<filename>/<email>', methods=['GET'])
+def get_upload_status(uid, filename, email):
+    #uid = request.args.get('uid')
+    # filename = request.args.get('filename')
+    # email = request.args.get('email')
 
     if uid:
         upload = Upload.query.filter_by(uid=uid).first()
@@ -107,4 +78,10 @@ def get_upload_status():
 
 
 if __name__ == '__main__':
+    db_model.set_path()
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
+    app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db/db.sqlite3'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db_model.create_all()
     app.run(host='0.0.0.0', port=5000)
