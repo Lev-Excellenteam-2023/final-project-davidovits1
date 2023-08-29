@@ -1,12 +1,10 @@
 import json
 import os
 from datetime import datetime
-
 from flask import Response
 
 
-
-def create_json_file(path: str, output_folder: str,  data: any) -> None:
+def create_json_file(path: str, output_folder: str, data: any) -> None:
     """
     Create json file
 
@@ -74,7 +72,23 @@ def sort_json_to_send(output_data: list) -> Response:
     return response
 
 
-def save_to_json(uid: str, upload_status: str, name: str, finish_time: datetime = None, explanation=None):
+def save_to_json(uid: str, upload_status: str, name: str, finish_time: datetime = None, explanation: any = None) -> dict:
+    """
+    Creates a dictionary representing the data to be saved as JSON.
+
+    Args:
+        uid (str): The unique identifier for the data.
+        upload_status (str): The status of the upload process.
+        name (str): The filename associated with the data.
+        finish_time (datetime, optional): The time when the upload process finished.
+        explanation (optional): Additional explanation or notes about the data.
+
+    Returns:
+        dict: A dictionary containing the data to be saved as JSON.
+
+    Example:
+        data = save_to_json('12345', 'success', 'example.txt', datetime.now(), 'Upload completed without errors.')
+    """
     return {
         'uid': uid,
         'status': upload_status,

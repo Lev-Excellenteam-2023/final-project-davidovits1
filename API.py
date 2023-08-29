@@ -94,4 +94,5 @@ if __name__ == '__main__':
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db/db.sqlite3'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db_model.create_all()
+
     app.run(host='0.0.0.0', port=5000)
