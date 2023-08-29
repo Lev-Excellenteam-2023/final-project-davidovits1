@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, request, render_template, flash, redirect
+from flask import Flask, request, render_template, redirect, url_for
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker, declarative_base
 import db_model
@@ -23,36 +23,30 @@ Session = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base()
 
 
-# def allowed_file(filename):
-#     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 @app.route('/')
 def index():
     return render_template("upload.html")
 
 
-@app.route('/upload', methods=['POST'])
+@app.route('/upload', methods=['POST', 'GET'])
 def upload_file():
     if request.method == 'POST':
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
         file = request.files.get('file')
         if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
+            return "No selected file", 404
+        if not file.filename.endswith("pptx"):
+            return "Invalid file type", 404
         email = request.form.get('email')
         if email:
             uid = db_model.save_upload_with_user(file, email)
         else:
             uid = db_model.save_upload(file)
         return f"File uploaded successfully. UID: {uid}", 200
-    return "Invalid file format", 400
+    return render_template("upload.html")
 
 
 @app.route('/status/<uid>', methods=['GET'])
-def get_upload_status(uid):
+def get_status(uid):
     with Session() as session:
         file_data = session.query(db_model.Upload).filter_by(uid=uid).first()
         if file_data:
@@ -66,6 +60,31 @@ def get_upload_status(uid):
             response = json_file.sort_json_to_send(output_data)
             return response
     return "status: not_found", 404
+
+
+@app.route('/search', methods=['POST', 'GET'])
+def search():
+    if request.method == 'POST':
+        uid = request.form.get('uid')
+        email = request.form.get('email')
+        filename = request.form.get('filename')
+        if uid:
+            return redirect(url_for('get_status', uid=uid))
+        elif email and filename:  # Only search if both email and filename are provided
+            with Session() as session:
+                user = session.query(db_model.User).filter_by(email=email).first()
+                if user:
+                    latest_upload = session.query(db_model.Upload).filter_by(user=user, filename=filename).order_by(
+                        db_model.Upload.upload_time.desc()).first()
+                    if latest_upload:
+                        return redirect(url_for('get_status', uid=latest_upload.uid))
+                    else:
+                        return "Filename not found", 404
+                else:
+                    return f"Email: {email} does not exist", 404
+        else:
+            return "Please enter a UID, or provide both email and filename", 404
+    return render_template("search.html")
 
 
 if __name__ == '__main__':
