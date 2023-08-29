@@ -87,6 +87,20 @@ def search():
     return render_template("search.html")
 
 
+@app.route('/delete', methods=['POST', 'GET'])
+def delete_user():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        if email:
+            if db_model.delete_user_by_email(email):
+                return f"User with email {email} has been deleted.", 200
+            else:
+                return f"User with email {email} not found.", 404
+        else:
+            return "You need to enter an email", 404
+    return render_template("delete.html")
+
+
 if __name__ == '__main__':
     db_model.set_path()
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
