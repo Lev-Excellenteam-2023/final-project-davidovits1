@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from sqlalchemy import Enum, ForeignKey, String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship, sessionmaker, scoped_session, declarative_base
-from typing import List, Optional
+from typing import List, Optional, Union
 from sqlalchemy import create_engine
 from uuid import uuid4
 
@@ -163,3 +163,45 @@ def delete_user_by_email(email: str) -> bool:
             return True
         else:
             return False
+
+
+def search_user_by_email_and_filename(email: str, filename: str) -> tuple:
+    """
+    Search for a user's latest upload by email and filename.
+
+    Args:
+        email (str): The email of the user to search for.
+        filename (str): The filename to search for.
+
+    Returns:
+        tuple: A tuple containing a boolean value and a message.
+            - If the search is successful, the boolean value will be True,
+              and the message will contain the unique identifier (UID) of the upload.
+            - If the user or file is not found, the boolean value will be False,
+              and the message will provide a relevant error message.
+    """
+    with Session() as session:
+        user = session.query(User).filter_by(email=email).first()
+        if user:
+            latest_upload = session.query(Upload).filter_by(user=user, filename=filename).order_by(
+                Upload.upload_time.desc()).first()
+            if latest_upload:
+                return True, latest_upload.uid
+            else:
+                return False, f"File: {filename} not exist"
+        else:
+            return False, f"Email: {email} does not exist"
+
+
+def get_upload_from_db(uid) -> Union[Upload, None]:
+    """
+    Retrieve an upload from the database by its unique identifier (UID).
+
+    Args:
+        uid (str): The unique identifier of the upload to retrieve.
+
+    Returns:
+        Upload: An instance of the Upload class representing the retrieved upload.
+    """
+    with Session() as session:
+        return session.query(Upload).filter_by(uid=uid).first()

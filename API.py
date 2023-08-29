@@ -1,26 +1,11 @@
 import os
-
 from flask import Flask, request, render_template, redirect, url_for
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker, declarative_base
 import db_model
 import json_file
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'outputs'
-ALLOWED_EXTENSIONS = {'pptx'}
-
-
-# Create the engine
-engine = create_engine('sqlite:///db/db.sqlite3')
-
-# Create a scoped session to manage sessions for each request
-Session = scoped_session(sessionmaker(bind=engine))
-
-# Base class for the models
-Base = declarative_base()
 
 
 @app.route('/')
@@ -47,18 +32,17 @@ def upload_file():
 
 @app.route('/status/<uid>', methods=['GET'])
 def get_status(uid):
-    with Session() as session:
-        file_data = session.query(db_model.Upload).filter_by(uid=uid).first()
-        if file_data:
-            if file_data.status == db_model.UploadStatus.done:
-                output_path = os.path.join(OUTPUT_FOLDER, f"{uid}.json")
-                data = json_file.read_from_json(output_path)
-                output_data = json_file.save_to_json(uid, file_data.status, file_data.filename,
-                                                     file_data.finish_time, data)
-            else:
-                output_data = json_file.save_to_json(uid, file_data.status, file_data.filename, file_data.finish_time)
-            response = json_file.sort_json_to_send(output_data)
-            return response
+    file_data = db_model.get_upload_from_db(uid)
+    if file_data:
+        if file_data.status == db_model.UploadStatus.done:
+            output_path = os.path.join(OUTPUT_FOLDER, f"{uid}.json")
+            data = json_file.read_from_json(output_path)
+            output_data = json_file.save_to_json(uid, file_data.filename, file_data.upload_time, file_data.status,
+                                                 file_data.finish_time, data)
+        else:
+            output_data = json_file.save_to_json(uid, file_data.filename, file_data.upload_time, file_data.status)
+        response = json_file.sort_json_to_send(output_data)
+        return response
     return "status: not_found", 404
 
 
@@ -71,17 +55,22 @@ def search():
         if uid:
             return redirect(url_for('get_status', uid=uid))
         elif email and filename:  # Only search if both email and filename are provided
-            with Session() as session:
-                user = session.query(db_model.User).filter_by(email=email).first()
-                if user:
-                    latest_upload = session.query(db_model.Upload).filter_by(user=user, filename=filename).order_by(
-                        db_model.Upload.upload_time.desc()).first()
-                    if latest_upload:
-                        return redirect(url_for('get_status', uid=latest_upload.uid))
-                    else:
-                        return "Filename not found", 404
-                else:
-                    return f"Email: {email} does not exist", 404
+            is_exist, data = db_model.search_user_by_email_and_filename(email, filename)
+            if is_exist:
+                return redirect(url_for('get_status', uid=data))
+            else:
+                return data, 404
+            # with Session() as session:
+            #     user = session.query(db_model.User).filter_by(email=email).first()
+            #     if user:
+            #         latest_upload = session.query(db_model.Upload).filter_by(user=user, filename=filename).order_by(
+            #             db_model.Upload.upload_time.desc()).first()
+            #         if latest_upload:
+            #             return redirect(url_for('get_status', uid=latest_upload.uid))
+            #         else:
+            #             return "Filename not found", 404
+            #     else:
+            #         return f"Email: {email} does not exist", 404
         else:
             return "Please enter a UID, or provide both email and filename", 404
     return render_template("search.html")
