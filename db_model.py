@@ -10,7 +10,6 @@ from uuid import uuid4
 UPLOADS_FOLDER = "uploads"
 OUTPUT_FOLDER = 'outputs'
 
-
 # Create the engine
 engine = create_engine('sqlite:///db/db.sqlite3')
 
@@ -126,7 +125,7 @@ def save_upload_with_user(file, email: str) -> str:
             user = User(email=email)
             session.add(user)
             session.commit()
-        user_upload = Upload(filename=file.filename, upload_time=datetime.now(), user=user)
+        user_upload = Upload(filename=file.filename, upload_time=datetime.now(), user_id=user.id)
         session.add(user_upload)
         session.commit()
         _, file_type = os.path.splitext(file.filename)
@@ -144,3 +143,23 @@ def set_path():
 def create_all():
     """Create database tables."""
     Base.metadata.create_all(engine)
+
+
+def delete_user_by_email(email: str) -> bool:
+    """
+    Delete a user by their email.
+
+    Args:
+        email (str): The email of the user to be deleted.
+
+    Returns:
+        bool: True if the user was successfully deleted, False otherwise.
+    """
+    with Session() as session:
+        user = session.query(User).filter_by(email=email).first()
+        if user:
+            session.delete(user)
+            session.commit()
+            return True
+        else:
+            return False
