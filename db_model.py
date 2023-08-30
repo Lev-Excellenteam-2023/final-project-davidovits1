@@ -205,3 +205,20 @@ def get_upload_from_db(uid) -> Union[Upload, None]:
     """
     with Session() as session:
         return session.query(Upload).filter_by(uid=uid).first()
+
+
+def get_uploads_by_email(email: str) -> List[Upload]:
+    """
+    Retrieve all uploads associated with a user by their mail.
+
+    Args:
+        email (str): The email of the user whose uploads are to be retrieved.
+
+    Returns:
+        List[Upload]: A list of Upload instances representing the uploads associated with the user.
+    """
+    with Session() as session:
+        user = session.query(User).filter_by(email=email).first()
+        if user:
+            return user.uploads
+        return []
