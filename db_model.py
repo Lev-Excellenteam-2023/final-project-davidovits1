@@ -188,9 +188,9 @@ def search_user_by_email_and_filename(email: str, filename: str) -> tuple:
             if latest_upload:
                 return True, latest_upload.uid
             else:
-                return False, f"File: {filename} not exist"
+                return False, f"{filename} not exist"
         else:
-            return False, f"Email: {email} does not exist"
+            return False, f"{email} does not exist"
 
 
 def get_upload_from_db(uid) -> Union[Upload, None]:
@@ -207,7 +207,7 @@ def get_upload_from_db(uid) -> Union[Upload, None]:
         return session.query(Upload).filter_by(uid=uid).first()
 
 
-def get_uploads_by_email(email: str) -> List[Upload]:
+def get_uploads_by_email(email: str) -> str:
     """
     Retrieve all uploads associated with a user by their mail.
 
@@ -215,10 +215,15 @@ def get_uploads_by_email(email: str) -> List[Upload]:
         email (str): The email of the user whose uploads are to be retrieved.
 
     Returns:
-        List[Upload]: A list of Upload instances representing the uploads associated with the user.
+        str: A string of filenames the user has uploaded.
     """
     with Session() as session:
         user = session.query(User).filter_by(email=email).first()
         if user:
-            return user.uploads
-        return []
+            user_uploads = user.uploads
+            files_name = f"The files of {email}:" + '<br><br>' + user_uploads[0].filename
+            for upload in user_uploads[1:]:
+                files_name += '<br>' + upload.filename
+            return files_name
+        else:
+            return f"{email} does not exist"
