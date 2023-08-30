@@ -96,14 +96,20 @@ def search():
         filename = request.form.get('filename')
         if uid:
             return redirect(url_for('get_status', uid=uid))
-        elif email and filename:  # Only search if both email and filename are provided
-            is_exist, data = db_model.search_user_by_email_and_filename(email, filename)
-            if is_exist:
-                return redirect(url_for('get_status', uid=data))
+        elif filename:
+            if email:
+                is_exist, data = db_model.search_user_by_email_and_filename(email, filename)
+                if is_exist:
+                    return redirect(url_for('get_status', uid=data))
+                else:
+                    return data, 404
             else:
-                return data, 404
+                return "Please enter email also", 404
+
+        elif email:
+            return db_model.get_uploads_by_email(email), 200
         else:
-            return "Please enter a UID, or provide both email and filename", 404
+            return "No UID or email or file name and email was entered", 404
     return render_template("search.html")
 
 
