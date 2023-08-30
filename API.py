@@ -9,12 +9,31 @@ OUTPUT_FOLDER = 'outputs'
 
 
 @app.route('/')
-def index():
+def default():
+    """
+    Render the default page.
+
+    Returns:
+        str: The rendered HTML content for the default page.
+
+    This route renders the default page, which provides a user interface for file upload and other actions.
+    """
     return render_template("upload.html")
 
 
 @app.route('/upload', methods=['POST', 'GET'])
 def upload_file():
+    """
+    Handle file upload and save it to the database.
+
+    Returns:
+        str: A message indicating the result of the upload.
+
+    This route handles both GET and POST requests. For GET requests, it renders the upload page.
+    For POST requests, it processes the uploaded file, associates it with a user (if provided),
+    saves the upload to the database, and returns a message indicating the success or failure of the upload.
+    """
+
     if request.method == 'POST':
         file = request.files.get('file')
         if file.filename == '':
@@ -32,6 +51,19 @@ def upload_file():
 
 @app.route('/status/<uid>', methods=['GET'])
 def get_status(uid):
+    """
+    Get the status and data of an uploaded file by UID.
+
+    Args:
+        uid (str): The unique identifier of the uploaded file.
+
+    Returns:
+        Response: A Flask Response containing the status and data of the uploaded file.
+
+    This route retrieves the status and data of an uploaded file based on its unique identifier (UID).
+    If the file's status is "done," it fetches additional data from a JSON file and returns a formatted JSON response.
+    Otherwise, it returns a simplified JSON response with basic information about the upload.
+    """
     file_data = db_model.get_upload_from_db(uid)
     if file_data:
         if file_data.status == db_model.UploadStatus.done:
@@ -48,6 +80,16 @@ def get_status(uid):
 
 @app.route('/search', methods=['POST', 'GET'])
 def search():
+    """
+    Search for an uploaded file by UID, email, and filename.
+
+    Returns:
+        str or Response: A message or redirect based on the search result.
+
+    This route handles both GET and POST requests. For GET requests, it renders the search page.
+    For POST requests, it processes the search parameters (UID, email, filename), performs the search,
+    and either redirects to the status page or returns an error message.
+    """
     if request.method == 'POST':
         uid = request.form.get('uid')
         email = request.form.get('email')
@@ -60,17 +102,6 @@ def search():
                 return redirect(url_for('get_status', uid=data))
             else:
                 return data, 404
-            # with Session() as session:
-            #     user = session.query(db_model.User).filter_by(email=email).first()
-            #     if user:
-            #         latest_upload = session.query(db_model.Upload).filter_by(user=user, filename=filename).order_by(
-            #             db_model.Upload.upload_time.desc()).first()
-            #         if latest_upload:
-            #             return redirect(url_for('get_status', uid=latest_upload.uid))
-            #         else:
-            #             return "Filename not found", 404
-            #     else:
-            #         return f"Email: {email} does not exist", 404
         else:
             return "Please enter a UID, or provide both email and filename", 404
     return render_template("search.html")
@@ -78,6 +109,16 @@ def search():
 
 @app.route('/delete', methods=['POST', 'GET'])
 def delete_user():
+    """
+    Delete a user by email (and deletes all uploads that the user has uploaded).
+
+    Returns:
+        str: A message indicating the result of the user deletion.
+
+    This route handles both GET and POST requests. For GET requests, it renders the delete page.
+    For POST requests, it processes the provided email, deletes the user if found in the database,
+    and returns a message indicating the success or failure of the deletion.
+    """
     if request.method == 'POST':
         email = request.form.get('email')
         if email:
