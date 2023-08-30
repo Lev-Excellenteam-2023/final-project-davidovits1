@@ -11,6 +11,20 @@ OUTPUT_FOLDER = 'outputs'
 
 
 async def process_files():
+    """
+    Process pending upload files asynchronously.
+
+    This asynchronous function continuously checks for pending upload files in the database.
+    For each pending upload, it extracts text from the associated presentation file, processes the text
+    using an async client, and generates an output JSON file with the processed data.
+    The processed file is then removed from the uploads folder, and the upload's status and finish time
+    are updated in the database.
+
+    The function sleeps for a short interval after each iteration.
+
+    This function is meant to be run as part of an asyncio event loop.
+
+    """
     while True:
         with Session() as session:
             upload_files = session.query(Upload).filter_by(status=UploadStatus.pending).all()
@@ -43,8 +57,8 @@ async def process_files():
         await asyncio.sleep(10)
 
 
-# Run the asyncio event loop
 async def main():
+    """Run the asyncio event loop"""
     await asyncio.gather(process_files())
 
 
