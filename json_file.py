@@ -1,9 +1,11 @@
 import json
 import os
+from datetime import datetime
 from flask import Response
+from typing_extensions import Union
 
 
-def create_json_file(path: str, output_folder: str,  data: any) -> None:
+def create_json_file(path: str, output_folder: str, data: any) -> None:
     """
     Create json file
 
@@ -53,13 +55,13 @@ def read_from_json(output_path: str) -> list:
     return output_data
 
 
-def sort_json_to_send(output_data: list) -> Response:
+def sort_json_to_send(output_data: Union[list, dict]) -> Response:
     """
     This function takes a list of data, sorts it, and creates a Flask Response object containing the sorted JSON data.
 
     Parameters:
 
-    output_data (list): The list of data to be sent as JSON response.
+    output_data (list or dict): The JSON data to be sorted and formatted.
     Returns:
 
     response (Response): A Flask Response object containing sorted JSON data.
@@ -69,3 +71,35 @@ def sort_json_to_send(output_data: list) -> Response:
         content_type='application/json'
     )
     return response
+
+
+def save_to_json(uid: str, name: str, start_time: datetime, upload_status: str,
+                 finish_time: datetime = None, explanation: any = None) -> dict:
+    """
+    Creates a dictionary representing the data to be saved as JSON.
+
+    Args:
+        uid (str): The unique identifier for the data.
+        name (str): The filename associated with the data.
+        start_time (datatime) The time when the file was uploaded
+        upload_status (str): The status of the upload process.
+        finish_time (datetime, optional): The time when the upload process finished.
+        explanation (optional): Additional explanation or notes about the data.
+
+    Returns:
+        dict: A dictionary containing the data to be saved as JSON.
+
+    Example:
+        data = save_to_json('12345', 'success', 'example.txt', datetime.now(), 'Upload completed without errors.')
+    """
+    temp_dict = {
+        'uid': uid,
+        'filename': name,
+        'start_time': str(start_time),
+        'status': upload_status,
+    }
+    if finish_time:
+        temp_dict['finish time'] = str(finish_time)
+    if explanation:
+        temp_dict['explanation'] = explanation
+    return temp_dict
